@@ -1,10 +1,15 @@
 require ('dotenv').config();
-const express = require('express')
-const cors = require('cors')
+const express = require('express');
+const cors = require('cors');
 const path = require('path');
 const connectDb = require('./config/db');
+const authRoutes = require("./routes/authRoutes");
+
 
 const app = express();
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 //Middlewear to handle CORS
 app.use(
@@ -22,7 +27,7 @@ app.use(express.json());
 connectDb();
 
 // //Routes
-// app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 // app.use("/api/users", userRoutes);
 // app.use("/api/tasks", taskRoutes);
 // app.use("/api/reports", reportRoutes);

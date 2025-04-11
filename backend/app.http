@@ -1,0 +1,24 @@
+### Register User
+POST http://localhost:8000/api/auth/register
+Content-Type: application/json
+
+{
+    "name": "Jeff",
+    "email": "Ndegwa12345tyh",
+    "password": "example1@gmail.com",
+    "profileImageUrl": "pass404",
+    "adminInviteToken": "254254"
+}
+
+### login user
+POST http://localhost:8000/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "Ndegwa12345",
+    "password": "example1@gmail.com"
+}
+
+### get user profile
+GET http://localhost:8000/api/auth/profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZjkyM2M5NGQyYWI5YjNhZWFiM2E4YiIsImlhdCI6MTc0NDM5ODc3NywiZXhwIjoxNzQ1MDAzNTc3fQ.16LxmC0Q_FhbNxirpLfiPK2p97y9PYZEgURtPUeSNp4
