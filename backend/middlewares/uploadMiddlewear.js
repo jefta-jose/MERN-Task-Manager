@@ -28,3 +28,30 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 
 module.exports = upload;
+
+
+//  Input file:
+// - `file.originalname` = `"code.png"`
+
+//  Step-by-step breakdown:
+
+// 1. `Date.now()`  
+//    gets the current timestamp eg: `1712925600000`
+
+// 2. `path.extname(file.originalname)`  
+//    Extracts the extension of the file:  
+//    `extension = ".png"`
+
+// 3. `path.basename(file.originalname, extension)`  
+//    Extracts the name without extension:  
+//    `name = "code"`
+
+// 4. Filename construction  
+//    The final filename becomes:  
+//    ```js
+//    `${timestamp}-${name}${extension}`
+//    = "1712925600000-code.png"
+//    ```
+
+// The uploaded file will be saved as:
+// 1712925600000-code.png
