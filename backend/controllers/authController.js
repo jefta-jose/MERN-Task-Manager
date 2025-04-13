@@ -15,7 +15,7 @@ const registerUser = async(req, res) => {
         //check if user exists
         const existingUser = await getUserByEmail(email);
         if(existingUser){
-            return badRequest(res, "user already exists try ressting your password instead");
+            return badRequest(res, "user already exists");
         };
 
         //create a new user 
