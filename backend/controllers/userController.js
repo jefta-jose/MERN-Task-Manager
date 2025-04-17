@@ -1,6 +1,6 @@
 const { serverError, notFound, ok } = require("../helperFunctions/responseHelper");
-const { getUsersAndTasks } = require("../services/userServices");
-const {getUserById} = require("../services/authServices");
+const { getUsersAndTasks, getAdminsService } = require("../services/userServices");
+const {getUserByIdService} = require("../services/authServices");
 
 
 //@desc GET all users (Admins Only)
@@ -22,13 +22,34 @@ const getUsers = async(req, res)=>{
     }
 }
 
+//@desc GET all admins (Admins Only)
+//@route GET /api/users/admins
+// access private (Admin)
+const getAdmins = async(req, res)=>{
+    try {
+        //get user details and their tasks
+        const admins = await getAdminsService();
+        
+        console.log("reached here");
+
+        if(!admins){
+            return notFound(res, "admins Not Found");
+        }
+
+        return ok(res, admins);
+
+    } catch (error) {
+        return serverError(res, error);
+    }
+}
+
 //@desc GET user by id
 //@route GET /api/users/:id
 // access private
-const getUser_ById = async(req, res)=>{
+const getUserById = async(req, res)=>{
     try {
 
-        const existingUser = await getUserById(req.user.id);
+        const existingUser = await getUserByIdService(req.params.id);
         if(!existingUser){
             return notFound(res, "User not found");
         }
@@ -45,10 +66,20 @@ const getUser_ById = async(req, res)=>{
 // access private (Admin)
 const deleteUser = async(req, res)=>{
     try {
+        const userId = req.params.id;
         
+        const userToDelete = await getUserByIdService(userId);
+
+        if(!userToDelete){
+            return notFound(res, "User Not Found");
+        }
+
+        await userToDelete.deleteOne();
+
+        return ok(res, "User Delete Successfully");
     } catch (error) {
         return serverError(res, error);
     }
 }
 
-module.exports = {getUsers, getUser_ById, deleteUser};
+module.exports = {getUsers, getUserById, deleteUser, getAdmins};

@@ -1,6 +1,5 @@
 const determinUserRole = require("../helperFunctions/determineRole");
 const hashPassword = require("../helperFunctions/hashPassword");
-const { badRequest } = require("../helperFunctions/responseHelper");
 const User = require("../models/User");
 
 const getUserByEmail = async(email) => {
@@ -36,7 +35,7 @@ const registerUserService = async(name, email, password, profileImageUrl, adminI
     }
 };
 
-const getUserById = async(userId)=>{
+const getUserByIdService = async(userId)=>{
     try {
         const user = await User.findById(userId).select("-password");
         return user;
@@ -45,4 +44,4 @@ const getUserById = async(userId)=>{
     }
 };
 
-module.exports = {registerUserService, getUserByEmail, getUserById};
+module.exports = {registerUserService, getUserByEmail, getUserByIdService};

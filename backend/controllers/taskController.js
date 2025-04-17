@@ -1,5 +1,7 @@
+const redisClient = require("../config/redisConfiguration");
 const { serverError, badRequest, ok, notFound } = require("../helperFunctions/responseHelper");
-const { createTaskService, filterAdminTasks, filterMemberTasks, todoChecklistCount, taskSummaryCount, getTaskByIdService } = require("../services/taskServices");
+const Task = require("../models/Task");
+const { createTaskService, filterAdminTasks, filterMemberTasks, todoChecklistCount, taskSummaryCount, getTaskByIdService, fetchStatisticsService, taskChartSerivice } = require("../services/taskServices");
 
 //@ desc Get all Tasks {Admin: all, User: assigned tasks}
 //@ route GET api/tasks/
@@ -128,8 +130,15 @@ const updateTask = async(req, res)=>{
         task.attachments = req.body.attachments || task.attachments;
 
         if(req.body.assignedTo){
-            if(!Array.isArray(req.body.assignedTo))
+            if(!Array.isArray(req.body.assignedTo)) {
+                return badRequest(res, "assigned to must be an array of user id's");
+            }
+            task.assignedTo = req.body.assignedTo;
         }
+
+        const updatedTask = await task.save();
+
+        return ok(res, updatedTask);
 
     } catch (error) {
         return serverError(res, error);
@@ -141,7 +150,18 @@ const updateTask = async(req, res)=>{
 //@ access private (Admin)
 const deleteTask = async(req, res)=>{
     try {
-        
+        const taskId = req.params.id;
+
+        const taskToDelete = await getTaskByIdService(taskId);
+
+        if(!taskToDelete){
+            return notFound(res, `task with ID: ${taskId} does not exist`);
+        }
+
+        await taskToDelete.deleteOne();
+
+        return ok(res, "task successfully deleted");
+
     } catch (error) {
         return serverError(res, error);
     }
@@ -152,7 +172,34 @@ const deleteTask = async(req, res)=>{
 //@ access private
 const updateTaskStatus = async(req, res)=>{
     try {
-        
+        const taskId = req.params.id;
+
+        const task = await getTaskByIdService(taskId);
+
+        if(!task){
+            return notFound(task, "task not found");
+        }
+
+        //here we are checking if the user updating the task has been assigned that task
+        const isAssigned = task.assignedTo.some(
+            (userId) => userId.toString() === req.user._id.toString()
+        );
+
+        if(!isAssigned && req.user.role != "admin"){
+            return badRequest(res, "not authorized");
+        }
+
+        task.status = req.body.status || task.status;
+
+        if(task.status === "Completed"){
+            task.todoChecklist.forEach((item) => (item.completed = true));
+            task.progress = 100;
+        }
+
+        const updatedTask = await task.save();
+
+        return ok(res, updatedTask);
+
     } catch (error) {
         return serverError(res, error);
     }
@@ -164,6 +211,51 @@ const updateTaskStatus = async(req, res)=>{
 const updateTaskChecklist = async(req, res)=>{
     try {
         
+        const taskId = req.params.id;
+
+        console.log("taskId:", taskId);
+
+        const {todoChecklist} = req.body;
+
+        const task = await getTaskByIdService(taskId);
+
+        console.log("task:", task);
+
+        if(!task){
+            return notFound(task, "task not found");
+        }
+
+        if(!task.assignedTo.includes(req.user._id) && req.user.role !== "admin"){
+            return badRequest(res, "user is not authorized to perform this role");
+        }
+
+        task.todoChecklist = todoChecklist;
+
+        //Auto-update progress based on checklist completion
+        const completedCount = task.todoChecklist.filter( (item) => item.completed).length;
+        const totalItems = task.todoChecklist.length;
+        task.progress = totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0 ;
+
+        //Auto mark tast as completed if all items are checked
+        if(task.progress === 100){
+            task.status = "Completed";
+        } else if(task.progress > 0){
+            task.status = "In Progress";
+        } else{
+            task.status = "Pending";
+        }
+
+        await task.save();
+
+        const updatedTask = await Task.findById(taskId).populate(
+            "assignedTo",
+            "name email profileImageUrl"
+        );
+
+        const respone = {task: updatedTask};
+
+        return ok(res, respone);
+
     } catch (error) {
         return serverError(res, error);
     }
@@ -173,8 +265,38 @@ const updateTaskChecklist = async(req, res)=>{
 //@ route GET api/tasks/dashboard-data
 //@ access private
 const getDashboardData = async(req, res)=>{
+    const cacheKey = "getDashboardData";
+
     try {
-        
+
+        //check if data exists on the redis cache
+        const cachedData = redisClient.get(cacheKey);
+        if(cachedData){
+            return ok(res,cachedData);
+        }
+
+        //fetch data from the db if the data does not exist
+        const [fetchStatistics, fetchCharts, recentTasks] = await Promise.all([
+            fetchStatisticsService(),
+            taskChartSerivice(),
+            //ftech 10 recent taks 
+            Task.find().sort({ createAt: -1 })
+                .limit(10)
+                .select("title status priority dueDate createdAt")
+
+        ]);
+
+        const response = {
+            fetchStatistics,
+            fetchCharts,
+            recentTasks,
+        };
+
+        // Cache the result for 1 hour
+        await redisClient.setEx(cacheKey, 3600, JSON.stringify(response));
+
+        return ok(res, response);
+
     } catch (error) {
         return serverError(res, error);
     }

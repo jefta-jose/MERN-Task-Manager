@@ -27,6 +27,17 @@ const getUsersAndTasks = async()=>{
     }
 };
 
+const getAdminsService = async()=>{
+    try {
+        const admins = await User.find({role: "admin"}).select("-password");
+
+        return admins;
+        
+    } catch (error) {
+        return error;
+    }
+};
+
 const deleteUserService = async(userId)=>{
     try {
         
@@ -35,4 +46,4 @@ const deleteUserService = async(userId)=>{
     }
 }
 
-module.exports = {getUsersAndTasks};
+module.exports = {getUsersAndTasks, getAdminsService};

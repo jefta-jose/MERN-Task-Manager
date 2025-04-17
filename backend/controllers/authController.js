@@ -2,7 +2,7 @@ const generateToken = require("../helperFunctions/generateToken");
 const hashPassword = require("../helperFunctions/hashPassword");
 const isMatch = require("../helperFunctions/passwordComparer");
 const { serverError, ok, badRequest, notFound } = require("../helperFunctions/responseHelper");
-const { registerUserService, getUserByEmail, getUserById } = require("../services/authServices");
+const { registerUserService, getUserByEmail, getUserByIdService } = require("../services/authServices");
 
 
 // @desc register a new user 
@@ -64,7 +64,7 @@ const loginUser = async(req, res) => {
 // @access Private (Requires JWT)
 const getUserProfile = async(req, res) => {
     try {
-        const existingUser = await getUserById(req.user.id);
+        const existingUser = await getUserByIdService(req.user.id);
 
         if(!existingUser){
             return notFound(res, "User Does Not Exist");
@@ -81,7 +81,7 @@ const getUserProfile = async(req, res) => {
 // @access Private (Requires JWT)
 const updateUserProfile = async(req, res) => {
     try {
-        const existingUser = await getUserById(req.user.id);
+        const existingUser = await getUserByIdService(req.user.id);
         if(!existingUser){
             return notFound(res, "User Does Not Exist");
         };

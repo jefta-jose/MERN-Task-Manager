@@ -22,6 +22,7 @@ const protect = async( req, res, next) => {
 
 //Middleear for admin-access only
 const adminOnly = (req, res, next) => {
+
     if(req.user && req.user.role === "admin"){
         next();
     } else{
