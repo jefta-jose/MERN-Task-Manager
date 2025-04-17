@@ -1,5 +1,5 @@
-const { serverError, badRequest, ok } = require("../helperFunctions/responseHelper");
-const { createTaskService, filterAdminTasks, filterMemberTasks, todoChecklistCount, taskSummaryCount } = require("../services/taskServices");
+const { serverError, badRequest, ok, notFound } = require("../helperFunctions/responseHelper");
+const { createTaskService, filterAdminTasks, filterMemberTasks, todoChecklistCount, taskSummaryCount, getTaskByIdService } = require("../services/taskServices");
 
 //@ desc Get all Tasks {Admin: all, User: assigned tasks}
 //@ route GET api/tasks/
@@ -43,6 +43,15 @@ const getTasks = async(req, res)=>{
 //@ access private
 const getTaskById = async(req, res)=>{
     try {
+        const taskId = req.params.id;
+
+        const task = await getTaskByIdService(taskId);
+
+        if(task){
+            return ok(res, task)
+        } else{
+            return notFound(res, `task with id ${taskId} was not found`)
+        }
 
     } catch (error) {
         return serverError(res, error);
@@ -103,6 +112,25 @@ const createTask = async(req, res)=>{
 const updateTask = async(req, res)=>{
     try {
         
+        const taskId = req.params.id;
+
+        const task = await getTaskByIdService(taskId);
+
+        if(!task){
+            return notFound(res, `task with id: ${taskId} was not found`);
+        }
+
+        task.title = req.body.title || task.title;
+        task.description = req.body.description || task.description;
+        task.priority = req.body.priority || task.priority;
+        task.dueDate = req.body.dueDate || task.dueDate;
+        task.todoChecklist = req.body.todoChecklist || task.todoChecklist;
+        task.attachments = req.body.attachments || task.attachments;
+
+        if(req.body.assignedTo){
+            if(!Array.isArray(req.body.assignedTo))
+        }
+
     } catch (error) {
         return serverError(res, error);
     }

@@ -87,10 +87,33 @@ const taskSummaryCount = async(role, userId, filter)=>{
     }
 }
 
+const getTaskByIdService = async(taskId)=> {
+    try {
+        const task = await Task.findById(taskId).populate(
+            "assignedTo",
+            "name email profileImageUrl"
+        );
+
+        return task;
+
+    } catch (error) {
+        return error;
+    }
+}
+
+const updateTaskService = async()=> {
+    try {
+        
+    } catch (error) {
+        return error;
+    }
+}
+
 module.exports = {
     createTaskService,
     filterAdminTasks,
     filterMemberTasks,
     todoChecklistCount,
     taskSummaryCount,
+    getTaskByIdService,
 };
