@@ -1,7 +1,7 @@
 const redisClient = require("../config/redisConfiguration");
 const { serverError, badRequest, ok, notFound } = require("../helperFunctions/responseHelper");
 const Task = require("../models/Task");
-const { createTaskService, filterAdminTasks, filterMemberTasks, todoChecklistCount, taskSummaryCount, getTaskByIdService, fetchStatisticsService, taskChartSerivice } = require("../services/taskServices");
+const { createTaskService, filterAdminTasks, filterMemberTasks, todoChecklistCount, taskSummaryCount, getTaskByIdService, fetchStatisticsService, taskChartSerivice, fetchUserStatisticsService, userTaskChartSerivice } = require("../services/taskServices");
 
 //@ desc Get all Tasks {Admin: all, User: assigned tasks}
 //@ route GET api/tasks/
@@ -306,7 +306,39 @@ const getDashboardData = async (req, res) => {
 //@ access private
 const getUsertDashboardData = async(req, res)=>{
     try {
-        
+        const userId = req.user._id;
+
+        const cacheKey = "getUserDashboardData";
+
+        try {
+            const cachedData = await redisClient.get(cacheKey);
+    
+            if (cachedData) {
+                return ok(res, JSON.parse(cachedData));
+            }
+    
+            const [fetchStatistics, fetchCharts, recentTasks] = await Promise.all([
+                fetchUserStatisticsService(userId),
+                userTaskChartSerivice(userId),
+                Task.find({assignedTo: userId}).sort({ createAt: -1 })
+                    .limit(10)
+                    .select("title status priority dueDate createdAt")
+            ]);
+    
+            const response = {
+                fetchStatistics,
+                fetchCharts,
+                recentTasks,
+            };
+    
+            // Proper way to set data with expiration
+            await redisClient.set(cacheKey, JSON.stringify(response), { EX: 3600 });
+    
+            return ok(res, response);
+    
+        } catch (error) {
+            return serverError(res, error);
+        }
     } catch (error) {
         return serverError(res, error);
     }

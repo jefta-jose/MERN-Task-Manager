@@ -141,6 +141,28 @@ const fetchStatisticsService  = async()=>{
     }
 }
 
+const fetchUserStatisticsService  = async(userId)=>{
+    try {
+        const[totalTasks, pendingTasks, inProgressTasks, completedTasks, overDueTasks] = await Promise.all([
+            Task.countDocuments({assignedTo: userId}),
+            Task.countDocuments({assignedTo: userId, status: "Pending" }),
+             Task.countDocuments({assignedTo: userId, status: "In Progress" }),
+            Task.countDocuments({assignedTo: userId, status: "Completed" }),
+    
+            Task.countDocuments({
+                assignedTo: userId,
+                status: { $ne: "Completed" },
+                dueDate: { $lt: new Date() },
+            })
+        ]);
+
+        return {totalTasks, pendingTasks, inProgressTasks, completedTasks, overDueTasks};
+
+    } catch (error) {
+        return error;
+    }
+}
+
 const taskChartSerivice = async() => {
     try {
 
@@ -187,6 +209,58 @@ const taskChartSerivice = async() => {
     }
 }
 
+const userTaskChartSerivice = async(userId) => {
+    try {
+
+        //ensure all possible statuses are included 
+        const taskStatuses = ["Pending", "In Progress", "Completed"];
+        const taskDistributionRaw = await Task.aggregate([
+            {
+                $match: {assignedTo: userId}
+            },
+            {
+                $group: {
+                    _id: "$status",
+                    count: { $sum: 1 },
+                },
+            },
+        ]);
+
+        const taskDistribution = taskStatuses.reduce((acc, status) => {
+            //remove spaces for response keys
+            const formattedKey = status.replace(/\s+/g, "");
+            acc[formattedKey] = taskDistributionRaw.find((item) => item._id === status )?.count || 0;
+            return acc;
+        },  {});
+        //add total count to task distribution
+        taskDistribution["All"] = fetchStatisticsService.totalTasks;
+
+        //ensure all prority levels are included
+        const taskPriorities = ["Low", "Medium", "High"];
+        const taskPriorityLevelsRaw = await Task.aggregate([
+            {
+                $match: {assignedTo: userId}
+            },
+            {
+                $group: {
+                    _id: "$priority",
+                    count: { $sum: 1 },
+                },
+            },
+        ]);
+
+        const taskPriorityLevels = taskPriorities.reduce((acc, priority) => {
+            acc[priority] = taskPriorityLevelsRaw.find((item) => item._id === priority)?.count || 0; 
+            return acc;
+        }, {});
+
+        return {taskDistribution, taskPriorityLevels};
+
+    } catch (error) {
+        return error;
+    }
+}
+
 module.exports = {
     createTaskService,
     filterAdminTasks,
@@ -198,5 +272,6 @@ module.exports = {
     findTaskByIdService,
     fetchStatisticsService,
     taskChartSerivice,
-
+    fetchUserStatisticsService,
+    userTaskChartSerivice
 };
