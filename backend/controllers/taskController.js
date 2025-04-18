@@ -100,8 +100,10 @@ const createTask = async(req, res)=>{
 
         const createdTask = await createTaskService( taskPayload );
 
-        return ok(res, createdTask);
+        // Invalidate dashboard cache
+        await redisClient.del("getDashboardData");
 
+        return ok(res, createdTask);
 
     } catch (error) {
         return serverError(res, error);
@@ -264,26 +266,22 @@ const updateTaskChecklist = async(req, res)=>{
 //@ desc Dashboard data (Admin only)
 //@ route GET api/tasks/dashboard-data
 //@ access private
-const getDashboardData = async(req, res)=>{
+const getDashboardData = async (req, res) => {
     const cacheKey = "getDashboardData";
 
     try {
+        const cachedData = await redisClient.get(cacheKey);
 
-        //check if data exists on the redis cache
-        const cachedData = redisClient.get(cacheKey);
-        if(cachedData){
-            return ok(res,cachedData);
+        if (cachedData) {
+            return ok(res, JSON.parse(cachedData));
         }
 
-        //fetch data from the db if the data does not exist
         const [fetchStatistics, fetchCharts, recentTasks] = await Promise.all([
             fetchStatisticsService(),
             taskChartSerivice(),
-            //ftech 10 recent taks 
             Task.find().sort({ createAt: -1 })
                 .limit(10)
                 .select("title status priority dueDate createdAt")
-
         ]);
 
         const response = {
@@ -292,8 +290,8 @@ const getDashboardData = async(req, res)=>{
             recentTasks,
         };
 
-        // Cache the result for 1 hour
-        await redisClient.setEx(cacheKey, 3600, JSON.stringify(response));
+        // Proper way to set data with expiration
+        await redisClient.set(cacheKey, JSON.stringify(response), { EX: 3600 });
 
         return ok(res, response);
 
@@ -301,6 +299,7 @@ const getDashboardData = async(req, res)=>{
         return serverError(res, error);
     }
 }
+
 
 //@ desc Dashboard data (User Specifi)
 //@ route GET api/tasks/user-dashboard-data

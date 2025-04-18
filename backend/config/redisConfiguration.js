@@ -1,6 +1,8 @@
 const { createClient } = require("redis");
 
-const redisClient = createClient(); // localhost:6379 by default
+const redisClient = createClient({
+  url: 'redis://:your_secure_password@localhost:6379'
+}); // localhost:6379 by default
 
 redisClient.on("error", (err) => {
   console.error("Redis Client Error:", err);
