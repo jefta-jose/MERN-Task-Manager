@@ -1,13 +1,3 @@
-Here's a professional GitHub README for your Backend Task Manager project:
-
-```markdown
-# Task Manager Backend API
-
-![Node.js](https://img.shields.io/badge/Node.js-18.x-green)
-![Express](https://img.shields.io/badge/Express-4.x-lightgrey)
-![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-blue)
-![Redis](https://img.shields.io/badge/Redis-Caching-red)
-
 A robust backend API for a Task Management application built with Node.js, Express, and MongoDB, following clean architecture principles.
 
 ## Features
